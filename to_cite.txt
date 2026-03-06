@@ -76,3 +76,5 @@ Note: This segmentator model was considered but we dicided to go with DentalSegm
 Artificial Intelligence in Temporomandibular Joint Disorders: An Umbrella Review
 Interesting remark: "The effectiveness of AI depends on the models and dataset utilized" "A recent observational study demonstrated that ML algorithms based on clinical measurement parameters-such as mouth opening, pain levels, and oral parafunctions-achieved high accuracy"
 ==================================================================================================
+Deep learning-based diagnosis of temporomandibular joint osteoarthritis using whole-body bone scans
+https://www.cell.com/iscience/fulltext/S2589-0042(25)02288-6

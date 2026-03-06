@@ -115,53 +115,51 @@ transfer learning
 \label{sec:intro}
 %% ===================================================================
 
+\section{Introduction}
+
 Temporomandibular joint osteoarthritis (TMJOA) is a progressive
 degenerative condition characterised by the breakdown of articular
-cartilage and subchondral bone, affecting an estimated 8--16\% of the
-general population and an even higher proportion of patients presenting
-with temporomandibular disorders (TMD) \cite{Loster2017,Wu2021}. Accurate
-and reproducible diagnosis is critical for treatment planning, yet the
-clinical presentation overlaps substantially with other TMD subtypes,
-making radiographic assessment the cornerstone of definitive
-diagnosis \cite{Ahmad2009}.
+cartilage and subchondral bone, with prevalence estimates ranging from approximately 2\% to 16\% of the general population
+\cite{Xu2025bibliometric}. Accurate diagnosis requires integration of clinical findings with imaging, and CBCT-based assessment is considered the reference standard for detecting osseous changes associated with TMJOA
+\cite{ahmad2009research,schiffman2014diagnostic}.
 
 Cone-beam computed tomography (CBCT) provides three-dimensional
 visualisation of osseous structures with submillimetre resolution at a
-radiation dose considerably lower than conventional computed tomography,
-and is therefore the recommended modality for assessing TMJOA
-morphology \cite{Larheim2015,Honey2007}. The Diagnostic Criteria for
-Temporomandibular Disorders (DC/TMD) define five principal radiographic
-signs: condylar erosion, generalised sclerosis, osteophyte formation,
-subcortical cyst, and the overarching diagnosis of osteoarthritis (OA),
-which is present when any of the first four signs is
-observed \cite{Schiffman2014}. Because multiple signs may coexist within
-a single joint, the task is inherently a multi-label classification problem.
+radiation dose and cost considerably lower than conventional computed
+tomography, and is therefore the established modality for assessing
+TMJOA morphology \cite{larheim2015temporomandibular,honey2007accuracy}.
+The Diagnostic Criteria for Temporomandibular Disorders (DC/TMD) imaging
+protocol identifies four principal radiographic signs of osteoarthritis:
+surface erosion, generalised sclerosis, osteophyte formation, and
+subchondral cyst. A diagnosis of osteoarthritis is rendered when at
+least one of these findings is present
+\cite{schiffman2014diagnostic}. Because multiple signs may coexist
+within a single joint, the task is inherently a multi-label
+classification problem. We adopt a two-level formulation that mirrors
+the clinical workflow: a composite osteoarthritis screen determines
+whether a joint is affected, and individual-sign predictions then
+characterise which specific findings are present. This yields a
+five-class multi-label formulation comprising the composite diagnosis and
+the four constituent signs.
 
 Manual interpretation of CBCT volumes for TMJOA is labour-intensive,
-requiring systematic review of hundreds of sagittal, coronal, and axial
-slices. Despite inter-rater reliability being generally acceptable for
-erosion and osteophyte, agreement for sclerosis and subcortical cyst
-remains only moderate, underlining the clinical need for automated
-decision-support systems \cite{Mago2021,Katakami2008}. Deep learning
-has demonstrated radiologist-level accuracy in a range of dental and
-craniofacial imaging tasks \cite{Lee2018_dental,Hung2020,Chen2019}, and
-several recent studies have applied convolutional neural networks (CNNs)
-and vision transformers to TMJ assessment
-\cite{Noh2023,Prajapati2021,Mago2021}.
+requiring systematic review of hundreds of slices across sagittal,
+coronal, and axial planes, further underscoring the clinical need for
+automated decision-support systems. Deep learning has demonstrated
+radiologist-level accuracy in a range of dental and craniofacial imaging
+tasks \cite{chen2019deep, choi2021artificial,talaat2023artificial}, and systematic
+reviews of CBCT-based TMJOA detection report pooled AUC values of
+approximately 0.92 \cite{xu2023artificial},
+yet heterogeneity in model architectures, imaging modalities, and
+labelling standards has limited direct comparisons across studies.
 
-However, existing automated approaches for TMJOA classification from CBCT share several important methodological limitations. A recurring but underappreciated problem is the lack of transparency in how 3-D volumetric data are converted into the 2-D inputs that most deep learning architectures expect. CBCT produces a full 3-D volume, yet many published models are 2-D classifiers or detectors trained on selected 2-D slices, with the slice-selection procedure left largely undescribed \cite{Ariji2019,Kuwana2021}. The practical consequence of this omission is substantial: the performance of a 2-D model is heavily dependent on \emph{which} slices are presented to it, yet readers cannot replicate, audit, or extend these methods without knowing the selection criteria. A recent illustrative example is the YOLOv10-based study by Mao et al. \cite{Mao2025}, which trained and evaluated on 7,357 annotated oblique-sagittal slices drawn from 1,434 joints. The authors only noted that two to ten images were collected per case depending on the extent of radiographic signs. This ambiguity means that the annotator must first identify candidate slices and then place bounding boxes around signs on each one---a two-stage, expert-dependent procedure that dramatically inflates annotation cost and introduces selection bias into the training data. More broadly, many methods rely on manual or semi-automatic cropping to isolate the condyle prior to analysis \cite{Noh2023,Prajapati2021}, others address only a single radiographic sign or reduce the problem to binary (OA vs.\ non-OA) classification \cite{Mago2021}, and most evaluate only one or two architectures, offering limited guidance on backbone selection for this imaging domain.
+Within CBCT-based approaches, object detection models, particularly the YOLO family, have emerged as the mainstream paradigm, localising and classifying radiographic signs in a single forward pass from manually selected two-dimensional slices \cite{lee2020automated, talaat2023artificial,Mao2025}. However, these models carry a substantial annotation burden, requiring per-sign bounding boxes on each selected slice. Recent foundation models pre-trained on large, diverse datasets offer a way to reduce this cost. In dental imaging specifically, DentalSegmentator \cite{dot2024dentalsegmentator} — an open-source nnU-Net model trained across seven institutions — provides robust fully automatic segmentation of dento-maxillofacial CBCT structures including the mandible, without task-specific retraining. By using this pre-train segmentation model to isolate the condylar region, a localisation and classification pipeline can be constructed using only image-level labels — a substantially lighter annotation requirement than the bounding-box labels demanded by detection approaches.
 
-To address these gaps, we present an end-to-end pipeline that (i)
-automatically segments the mandible and crops a condyle-centred volume
-using 3-D skeletonisation, (ii) classifies all five DC/TMD signs
-simultaneously from a single CBCT volume without manual slice selection,
-and (iii) requires only image-level labels, eliminating the need for
-bounding-box annotation. We systematically benchmark 20 deep learning
-architectures under two complementary training protocols---2-D
-informativeness-weighted slice sampling (Protocol~1) and a learnable
-3-D-to-2-D projection module (Protocol~2)---providing the most
-comprehensive architecture comparison to date for TMJOA classification
-from CBCT.
+A further limitation in existing work is how three-dimensional volumetric data are converted into the two-dimensional inputs that the models expect. CBCT produces a full three-dimensional volume, yet many published models are two-dimensional classifiers or detectors trained on manually selected slices. Because slice selection relies on human judgement, it may introduce operator-dependent variability and selection bias, potentially limiting reproducibility across clinical settings. A recent example is the YOLOv10-based study by Mao et al.\ \cite{Mao2025}, which trained and evaluated on 7,357 annotated oblique-sagittal slices drawn from 1,434 joints. The authors noted that two to ten images were collected per case depending on the extent of radiographic signs — a process in which the annotator must first identify candidate slices and then place bounding boxes on each, adding to annotation cost and potentially amplifying selection variability.
+
+Beyond the preprocessing pipeline, selecting a backbone architecture remains a consequential design choice. Transfer learning from models pretrained on large-scale natural image datasets is the dominant strategy for medical image classification given the scarcity of large annotated medical datasets \cite{kim2022transfer}, yet the substantial domain gap between natural and medical images means that pretraining performance does not straightforwardly predict downstream medical imaging performance, and both the pretraining strategy and the source data characteristics can significantly influence transferability \cite{hosseinzadeh2021systematic}. A related challenge is how best to adapt two-dimensional pretrained models to three-dimensional volumetric input — a question that has been approached through strategies ranging from slice sampling to learned projection modules to fully three-dimensional convolutions, but remains largely unexplored in dental imaging. These considerations motivate two research questions: (1)~which backbone architecture best transfers to TMJOA classification from CBCT, and (2)~which volumetric adaptation strategy most effectively leverages two-dimensional pretrained representations for this task?
+
+To address the gaps identified above, we present an end-to-end pipeline that (i) automatically segments the mandible and crops a condyle-centred volume using three-dimensional skeletonisation, (ii) classifies all five DC/TMD targets simultaneously from a single CBCT volume without manual slice selection, and (iii) recovers spatial interpretability through EigenCAM \cite{muhammad2020eigen} activation maps, complementing the coarse anatomical localisation achieved by the segmentation and cropping stages with finer-grained visualisation of the sub-regions driving each prediction. We systematically benchmark 20 deep learning architectures under two complementary training protocols --- two-dimensional informativeness-weighted slice sampling (Protocol~1) and a learnable three-dimensional-to-two-dimensional projection module (Protocol~2) --- evaluated on 271 training, 80 validation, and 43 test joints. To further investigate the volumetric adaptation question, we compare Protocol~1 and Protocol~2 against an additional strategy using ResNet-50 as a common backbone: a fully three-dimensional convolutional network constructed with the MONAI framework. Together, these experiments provide the most comprehensive architecture and adaptation-strategy comparison to date for TMJOA classification from CBCT.
 
 %% ===================================================================
 \section{Materials and Methods}
@@ -215,8 +213,8 @@ All volumes were processed through a three-stage pipeline
 \subsubsection{Stage 1: Mandibular Segmentation}
 
 Automatic segmentation of the mandible was performed using
-DentalSegmentator \cite{DentalSegmentator}, a publicly available
-pre-trained nnU-Net \cite{Isensee2021} model fine-tuned on a multi-centre
+DentalSegmentator \cite{dot2024dentalsegmentator}, a publicly available
+pre-trained nnU-Net \cite{isensee2021nnu} model fine-tuned on a multi-centre
 dental CBCT dataset. No further fine-tuning was performed. The segmentation
 mask was used exclusively to define the bounding geometry of the mandible
 in subsequent steps; no manual correction was applied to imperfect segmentation outputs, deliberately simulating the conditions of real-world clinical deployment where post-hoc mask editing is impractical.
@@ -225,7 +223,7 @@ in subsequent steps; no manual correction was applied to imperfect segmentation 
 
 The condylar centre was identified via 3-D skeletonisation of the
 mandibular mask using the \texttt{morphology.skeletonize} function from
-scikit-image \cite{scikit-image}. The skeleton was traversed to identify
+scikit-image \cite{van2014scikit}. The skeleton was traversed to identify
 the most superior branch tip, taken as a proxy for the condylar process
 apex. A $256 \times 256 \times 256$~voxel region of interest was then
 extracted, centred on this point.
@@ -339,12 +337,12 @@ protocols (Table~\ref{tab:models}). Architectures included ConvNeXt,
 DenseNet, EfficientNet, EfficientNet V2, GoogLeNet, Inception V3,
 MaxViT, MNASNet, MobileNet V2, MobileNet V3, RegNetX, RegNetY, ResNet,
 ResNeXt, ShuffleNet V2, Swin Transformer, Swin Transformer V2, VGG,
-Vision Transformer (ViT), and YOLOv11x-cls. All backbone weights were initialised from ImageNet pre-training. Pre-trained weights for all architectures except YOLOv11x-cls were sourced from the TorchVision model library \cite{TorchVision}, while YOLOv11x-cls weights were obtained from Ultralytics \cite{Ultralytics2023}. If multiple pre-trained weight sets were available for a single architecture variant (e.g.\ weights from different training recipes or augmentation strategies), the checkpoint reporting the highest ImageNet top-1 accuracy was selected to ensure the strongest possible initialisation. Protocol~1 used the largest available variant of each family; Protocol~2 used variants with $\leq 40\text{M}$ parameters.
+Vision Transformer (ViT), and YOLOv11x-cls. All backbone weights were initialised from ImageNet pre-training. Pre-trained weights for all architectures except YOLOv11x-cls were sourced from the TorchVision model library \cite{TorchVision}, while YOLOv11x-cls weights were obtained from Ultralytics \cite{yolo11_ultralytics}. If multiple pre-trained weight sets were available for a single architecture variant (e.g.\ weights from different training recipes or augmentation strategies), the checkpoint reporting the highest ImageNet top-1 accuracy was selected to ensure the strongest possible initialisation. Protocol~1 used the largest available variant of each family; Protocol~2 used variants with $\leq 40\text{M}$ parameters.
 
 \subsection{Explainability}
 \label{sec:xai}
 
-EigenCAM \cite{Muhammad2020}, a gradient-free class activation mapping
+EigenCAM \cite{muhammad2020eigen}, a gradient-free class activation mapping
 method that decomposes feature maps via principal component analysis,
 was applied to all Protocol~1 models at inference. Maps were upsampled
 to $256 \times 256$ and overlaid on the corresponding sagittal slice
@@ -364,7 +362,7 @@ threshold-independent metrics.
 \subsection{Implementation Details}
 \label{sec:impl}
 
-All models were implemented in Python using PyTorch~2.9.0+cu128 \cite{Paszke2019}, the Ultralytics library~8.4.14 \cite{Ultralytics2023} (for YOLOv11 variants), and MONAI~1.5.2 \cite{MONAI2020} for volumetric data handling. Visual inspection of raw CBCT volumes and preprocessed outputs at each pipeline stage was performed using 3D Slicer~5 \cite{Slicer2021}, an open-source medical image computing platform. Training was performed on an NVIDIA~L4 GPU (Google Colaboratory); each protocol--task combination required approximately 4--6~hours of wall-clock time.
+All models were implemented in Python using PyTorch~2.9.0+cu128 \cite{paszke2019pytorch}, the Ultralytics library~8.4.14 \cite{yolo11_ultralytics} (for YOLOv11 variants), and MONAI~1.5.2 \cite{monai2026} for volumetric data handling. Visual inspection of raw CBCT volumes and preprocessed outputs at each pipeline stage was performed using 3D Slicer~5 \cite{Slicer2021}, an open-source medical image computing platform. Training was performed on an NVIDIA~L4 GPU (Google Colaboratory); each protocol--task combination required approximately 4--6~hours of wall-clock time.
 
 \subsection{Native 3-D Baseline: MONAI ResNet50}
 \label{sec:monai3d}
@@ -372,7 +370,7 @@ All models were implemented in Python using PyTorch~2.9.0+cu128 \cite{Paszke2019
 To contextualise the 2-D and pseudo-2-D approaches in Protocol~1 and
 Protocol~2, a native 3-D ResNet50 baseline was trained directly on the
 full $256 \times 256 \times 256$ condylar volumes using the MONAI
-framework \cite{MONAI2020}. Unlike Protocol~1 and Protocol~2, this model
+framework \cite{monai2026}. Unlike Protocol~1 and Protocol~2, this model
 processes the entire volumetric input in a single forward pass without
 any dimensionality reduction or slice sampling, representing the most
 straightforward application of a deep learning classifier to 3-D CBCT
@@ -398,8 +396,7 @@ across all metrics (Fleiss' $\kappa = 0.844$; Krippendorff's
 $\alpha = 0.844$). Osteophyte showed similarly strong agreement
 (Fleiss' $\kappa = 0.837$). Agreement was moderate for generalised
 sclerosis (Fleiss' $\kappa = 0.664$) and subcortical cyst (Fleiss'
-$\kappa = 0.648$), consistent with reported values in the
-literature \cite{Mago2021,Katakami2008}.
+$\kappa = 0.648$).
 
 Performance of each rater against the gold standard is summarised in
 Table~\ref{tab:rater_vs_gold}. All three raters achieved high accuracy
@@ -525,9 +522,9 @@ annotations. The principal findings are discussed below.
 A key novelty of the proposed pipeline is the elimination of any manual
 step between raw CBCT acquisition and final classification output. Prior
 work has commonly required manual identification of the condylar
-region \cite{Noh2023,Prajapati2021} or bounding-box annotation for
+region \cite{ecser2023classification,choi2025artificial} or bounding-box annotation for
 object detection networks \cite{Ariji2019,Kuwana2021}. By combining
-DentalSegmentator \cite{DentalSegmentator} for automated mandibular
+DentalSegmentator \cite{dot2024dentalsegmentator} for automated mandibular
 segmentation with a skeletonisation-based condyle localiser, our approach
 requires only image-level binary labels---the standard output of a
 clinical radiological report---thus substantially reducing the cost and
@@ -563,7 +560,7 @@ entire volume without requiring a single "best" slice to be
 pre-selected, a task that is itself non-trivial to automate.
 
 This approach parallels multiple-instance learning frameworks applied
-to other volumetric imaging tasks \cite{Ilse2018,Campanella2019}, but
+to other volumetric imaging tasks \cite{ilse2018attention,campanella2019clinical}, but
 differs in that our aggregation weights are computed from a simple
 geometric prior (condylar cross-sectional area) rather than learned
 attention, rendering them interpretable and computationally inexpensive.
@@ -589,12 +586,12 @@ from Protocol~1 predictions as a supervision signal for Protocol~2.
 ConvNeXt-Large's top ranking across tasks is consistent with recent
 benchmarks showing that modernised pure-CNN architectures match or exceed
 vision transformers on medical imaging tasks with limited training
-data \cite{Liu2022convnext,Matsoukas2022}. The moderate performance of
+data \cite{liu2022convnet}. The moderate performance of
 large transformers (ViT-L/16, Swin-B) relative to their parameter count
 likely reflects the well-documented data-hungry nature of these models,
 which benefit more substantially from pre-training at scale and may
 require larger fine-tuning datasets to realise their theoretical
-advantage \cite{Dosovitskiy2021,Raghu2021}.
+advantage \cite{dosovitskiy2020image,raghu2021vision}.
 
 The competitive performance of compact architectures---MobileNet V2
 (Protocol~1 AUC-ROC 0.914) and MobileNet V3 (0.910)---has practical
@@ -622,7 +619,7 @@ balanced class) and then fine-tuning on sign-specific tasks using the
 OA-trained weights---provided an informed initialisation that appeared to
 mitigate the negative effects of imbalance without requiring explicit
 class weighting in the loss. This is consistent with curriculum learning
-principles \cite{Bengio2009}, where easy tasks precede difficult ones.
+principles \cite{bengio2009curriculum}, where easy tasks precede difficult ones.
 Future work should formally ablate this strategy against single-stage
 training and class-weighted loss functions.
 
@@ -630,11 +627,11 @@ training and class-weighted loss functions.
 
 Direct numerical comparison with prior studies is difficult owing to
 differences in dataset size, scanner characteristics, class definitions,
-and evaluation protocols. Noh et al.~\cite{Noh2023} reported AUC-ROC
-values of 0.81--0.93 for individual TMJOA signs using a semi-automatic
-pipeline requiring manual condylar cropping; our best model
+and evaluation protocols. Eşer et al.~\cite{ecser2023classification} reported AUC-ROC
+values of 0.4970 for or the classification of temporomandibular joint
+osteoarthritis using a 2 steps pipe line with fine-tuned segmentation model for condylar cropping and OA classification; our best model
 (ConvNeXt-Large, Protocol~1) matches or exceeds these values while
-requiring no manual interaction. Prajapati et al.~\cite{Prajapati2021}
+requiring no manual interaction. Prajapati et al.~\cite{choi2025artificial}
 achieved accuracy of 0.85 on a two-class (OA vs.\ non-OA) task from
 panoramic radiographs, a simpler formulation than the five-class
 multi-label problem addressed here. Studies employing YOLO-based
